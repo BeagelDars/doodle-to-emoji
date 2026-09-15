@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Doodle to Emoji</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✏️</text></svg>">
+</head>
+<body class="dark-theme">
+  <!-- Minimal Header -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand">
+        <span class="logo-icon">✏️</span>
+        <span class="brand-title">Doodle to Emoji</span>
+      </div>
+      <button id="btn-sound-toggle" class="icon-btn" title="Toggle Sound">
+        🔊
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Canvas & Top Emoji Card -->
+  <main class="app-main">
+    <!-- Left: Dark Drawing Notepad -->
+    <section class="notepad-section">
+      <!-- Minimalist Toolbar -->
+      <div class="notepad-toolbar">
+        <div class="tool-group">
+          <button type="button" class="tool-btn active" data-tool="pen" title="Pen">
+            <span>🖊️</span> Pen
+          </button>
+          <button type="button" class="tool-btn" data-tool="eraser" title="Eraser">
+            <span>🧹</span> Eraser
+          </button>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Color Palette -->
+        <div class="color-group">
+          <button type="button" class="color-dot active" data-color="#ffffff" style="background: #ffffff;" title="White"></button>
+          <button type="button" class="color-dot" data-color="#fde047" style="background: #fde047;" title="Yellow"></button>
+          <button type="button" class="color-dot" data-color="#38bdf8" style="background: #38bdf8;" title="Cyan"></button>
+          <button type="button" class="color-dot" data-color="#f43f5e" style="background: #f43f5e;" title="Pink"></button>
+          <button type="button" class="color-dot" data-color="#4ade80" style="background: #4ade80;" title="Green"></button>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Size Slider -->
+        <div class="size-group">
+          <input type="range" id="stroke-size" min="2" max="22" value="5" title="Brush Size">
+          <div id="stroke-size-preview" class="size-dot"></div>
+        </div>
+
+        <div class="toolbar-spacer"></div>
+
+        <!-- Undo & Clear -->
+        <div class="tool-group">
+          <button type="button" id="btn-undo" class="action-btn" title="Undo (Ctrl+Z)" disabled>
+            <span>↩️</span> Undo
+          </button>
+          <button type="button" id="btn-clear" class="action-btn action-danger" title="Clear Canvas (Esc)">
+            <span>🗑️</span> Clear
+          </button>
+        </div>
+      </div>
+
+      <!-- Pitch Dark Drawing Canvas -->
+      <div class="canvas-box">
+        <canvas id="drawing-canvas"></canvas>
+      </div>
+    </section>
+
+    <!-- Right: Single Top Emoji Result -->
+    <aside class="result-section">
+      <div class="result-card">
+        <!-- Empty State -->
+        <div id="empty-state" class="empty-state">
+          <div class="empty-glow">✨</div>
+          <div class="empty-text">Doodle on the dark pad</div>
+          <div class="empty-subtext">The top matching emoji will appear here instantly</div>
+        </div>
+
+        <!-- Populated Top Emoji -->
+        <div id="top-result" class="top-result hidden">
+          <div id="hero-emoji" class="hero-emoji-glyph" title="Click to copy!">😊</div>
+          <div class="hero-details">
+            <h2 id="hero-name" class="hero-name">Smiley Face</h2>
+            <span id="hero-confidence" class="hero-confidence">96% match</span>
+          </div>
+          <button type="button" id="hero-copy-btn" class="btn-copy">
+            <span>📋</span> Copy Emoji
+          </button>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Modern Popover Toast Notification -->
+  <div id="toast-notification" class="toast-popover" popover="manual">
+    <span class="toast-icon">✨</span>
+    <span id="toast-message">Copied to clipboard!</span>
+  </div>
+
+  <!-- Scripts -->
+  <script src="templates.js"></script>
+  <script src="recognizer.js"></script>
+  <script src="autodraw.js"></script>
+  <script src="canvas.js"></script>
+  <script src="audio.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
