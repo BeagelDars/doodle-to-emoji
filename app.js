@@ -1,252 +1,387 @@
 /**
- * Doodle-to-Emoji: Minimalist Application Controller
- * Manages drawing, real-time recognition of the top matching emoji,
- * and 1-click clipboard copy.
+ * CARTER CLICKER - CLEAN & LIGHT VERSION
+ * Zero sound effects, fast, simple, responsive
  */
 
-document.addEventListener('DOMContentLoaded', () => {
-  // DOM Elements
-  const canvasEl = document.getElementById('drawing-canvas');
-  const emptyStateEl = document.getElementById('empty-state');
-  const topResultEl = document.getElementById('top-result');
-  const heroEmojiEl = document.getElementById('hero-emoji');
-  const heroNameEl = document.getElementById('hero-name');
-  const heroConfidenceEl = document.getElementById('hero-confidence');
-  const heroCopyBtn = document.getElementById('hero-copy-btn');
+// --- GAME STATE ---
+const GAME = {
+  coins: 0,
+  totalEarned: 0,
+  currentImgIndex: 0,
+};
 
-  // Toolbar
-  const undoBtn = document.getElementById('btn-undo');
-  const clearBtn = document.getElementById('btn-clear');
-  const soundToggleBtn = document.getElementById('btn-sound-toggle');
-  const strokeSizeSlider = document.getElementById('stroke-size');
-  const strokeSizePreview = document.getElementById('stroke-size-preview');
-  const toolBtns = document.querySelectorAll('[data-tool]');
-  const colorBtns = document.querySelectorAll('[data-color]');
+// Available Carter Photos & Vibes
+const CARTER_IMAGES = [
+  { src: "images/carter1.png", name: "Mugshot" },
+  { src: "images/carter2.png", name: "Hear Me Out" },
+  { src: "images/carter3.png", name: "Doorbell Stare" }
+];
 
-  // Toast
-  const toastEl = document.getElementById('toast-notification');
-  const toastMessageEl = document.getElementById('toast-message');
+// Carter Witty Speech Quotes
+const CARTER_QUOTES = [
+  "Don't you dare put thermal paste in the socket, bro.",
+  "Yo what's up guys, Carter here!",
+  "Bro bought a $2,000 PC with a GT 710 inside.",
+  "Wait, hear me out... what if we water cool with Baja Blast?",
+  "Why does your PSU have ketchup and mustard cables?!",
+  "Linus dropped another OLED monitor.",
+  "Temu seller swore this runs GTA 6. Bro, it's an OptiPlex.",
+  "Bro used an entire 50g tube of thermal paste like cream cheese.",
+  "If your PC sounds like a Boeing 747, you need new fans.",
+  "More RGB equals more FPS. Scientifically proven.",
+  "Bro asked if he can download more VRAM from Temu.",
+  "Single channel RAM in 2026? Who hurt you?",
+  "That PSU is a certified fire hazard."
+];
 
-  // Services
-  const sound = new SoundEffects();
-  const recognizer = new EmojiRecognizer(window.EMOJI_TEMPLATES || []);
-  const autoDraw = typeof AutoDrawService !== 'undefined' ? new AutoDrawService() : null;
+// Floating Click Mini Jokes
+const CLICK_JOKES = [
+  "+1 Thermal Paste!",
+  "+1 Clout!",
+  "+1 FPS!",
+  "Bro bought a prebuilt!",
+  "OptiPlex Alert!",
+  "Fire Hazard!",
+  "Wait, hear me out!",
+  "Yo what's up guys!",
+  "Linus dropped it!",
+  "Temu special!",
+  "Cable spaghetti!",
+  "Air Fryer PC!",
+  "14,000 RPM!"
+];
 
-  let debounceTimer = null;
-  let currentTopEmoji = null;
-
-  // Setup Notepad Canvas with Dark Obsidian Paper & White Ink
-  const canvas = new NotepadCanvas(canvasEl, {
-    tool: 'pen',
-    color: '#ffffff',
-    strokeWidth: 5,
-    paperStyle: 'dark',
-    onStrokeEnd: () => {
-      triggerPrediction(canvas.strokes);
-    },
-    onStrokeMove: (strokes) => {
-      triggerPrediction(strokes);
-    },
-    onHistoryChange: ({ canUndo }) => {
-      if (undoBtn) undoBtn.disabled = !canUndo;
-    }
-  });
-
-  // Sound Toggle
-  function updateSoundIcon() {
-    if (!soundToggleBtn) return;
-    soundToggleBtn.textContent = sound.isMuted() ? '🔇' : '🔊';
+// Upgrades (Merged into one clean, progressive list)
+const UPGRADES = [
+  {
+    id: "pea_paste",
+    name: "Pea-Sized Paste",
+    icon: "🧪",
+    cps: 0.5,
+    baseCost: 15,
+    count: 0
+  },
+  {
+    id: "walmart_pc",
+    name: "Walmart Prebuilt",
+    icon: "🛒",
+    cps: 4,
+    baseCost: 100,
+    count: 0
+  },
+  {
+    id: "temu_optiplex",
+    name: "TikTok Mystery PC",
+    icon: "📦",
+    cps: 24,
+    baseCost: 1100,
+    count: 0
+  },
+  {
+    id: "jet_fans",
+    name: "14,000 RPM Fans",
+    icon: "🌀",
+    cps: 180,
+    baseCost: 12000,
+    count: 0
+  },
+  {
+    id: "linus_collab",
+    name: "Linus Tech Collab",
+    icon: "🧤",
+    cps: 1200,
+    baseCost: 130000,
+    count: 0
+  },
+  {
+    id: "air_fryer",
+    name: "Overclocked Air Fryer",
+    icon: "🍗",
+    cps: 7500,
+    baseCost: 1400000,
+    count: 0
+  },
+  {
+    id: "gold_spatula",
+    name: "Golden Paste Spatula",
+    icon: "🗡️",
+    cps: 45000,
+    baseCost: 20000000,
+    count: 0
+  },
+  {
+    id: "baja_loop",
+    name: "Baja Blast Loop",
+    icon: "🍹",
+    cps: 250000,
+    baseCost: 330000000,
+    count: 0
+  },
+  {
+    id: "rtx_5090",
+    name: "RTX 5090 Ti Nuclear",
+    icon: "⚡",
+    cps: 1500000,
+    baseCost: 5000000000,
+    count: 0
+  },
+  {
+    id: "carter_algorithm",
+    name: "CarterPCS Algorithm",
+    icon: "📱",
+    cps: 12000000,
+    baseCost: 75000000000,
+    count: 0
   }
-  updateSoundIcon();
+];
 
-  if (soundToggleBtn) {
-    soundToggleBtn.addEventListener('click', () => {
-      sound.toggleMute();
-      updateSoundIcon();
-    });
+// Number Formatter
+function formatNumber(num) {
+  if (!num || num === 0) return "0";
+  if (num < 10) return num % 1 === 0 ? num.toString() : num.toFixed(1);
+  if (num < 1000) return Math.floor(num).toLocaleString();
+
+  const suffixes = ["", "K", "M", "B", "T", "Qa", "Qi"];
+  const i = Math.floor(Math.log10(num) / 3);
+  if (i >= suffixes.length) return num.toExponential(1);
+  return `${(num / Math.pow(10, i * 3)).toFixed(1)} ${suffixes[i]}`;
+}
+
+// Cost calculation
+function getUpgradeCost(item) {
+  return Math.floor(item.baseCost * Math.pow(1.15, item.count));
+}
+
+// Total CPS
+function getTotalCPS() {
+  return UPGRADES.reduce((sum, u) => sum + u.cps * u.count, 0);
+}
+
+// DOM Elements
+const coinCountEl = document.getElementById("coin-count");
+const cpsDisplayEl = document.getElementById("cps-display");
+const carterImgEl = document.getElementById("carter-img");
+const carterBox = document.getElementById("carter-click-area");
+const clickRipple = document.getElementById("click-ripple");
+const clickEffects = document.getElementById("click-effects");
+const carterQuoteEl = document.getElementById("carter-quote");
+const carterVibeTag = document.getElementById("carter-vibe-tag");
+const shopListEl = document.getElementById("shop-list");
+const ownedCountBadge = document.getElementById("owned-count-badge");
+const btnReset = document.getElementById("btn-reset");
+
+// Render Shop
+function renderShop() {
+  shopListEl.innerHTML = "";
+  let totalOwned = 0;
+
+  for (const item of UPGRADES) {
+    totalOwned += item.count;
+    const cost = getUpgradeCost(item);
+    const canAfford = GAME.coins >= cost;
+
+    const card = document.createElement("div");
+    card.className = `upgrade-card ${canAfford ? '' : 'disabled'}`;
+    card.dataset.id = item.id;
+
+    card.innerHTML = `
+      <div class="card-left">
+        <div class="card-icon">${item.icon}</div>
+        <div class="card-details">
+          <h4>${item.name}</h4>
+          <div class="card-boost">+${formatNumber(item.cps)} / s</div>
+        </div>
+      </div>
+      <div class="card-right">
+        <div class="card-cost">🪙 ${formatNumber(cost)}</div>
+        <div class="card-owned">${item.count > 0 ? item.count + ' owned' : ''}</div>
+      </div>
+    `;
+
+    card.addEventListener("click", () => buyUpgrade(item));
+    shopListEl.appendChild(card);
   }
 
-  // Tool Selection
-  toolBtns.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      toolBtns.forEach((b) => b.classList.remove('active'));
-      btn.classList.add('active');
-      canvas.setTool(btn.dataset.tool);
-      sound.playPop();
-    });
-  });
+  ownedCountBadge.textContent = `${totalOwned} owned`;
+}
 
-  // Color Selection
-  colorBtns.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      colorBtns.forEach((b) => b.classList.remove('active'));
-      btn.classList.add('active');
-      const color = btn.dataset.color;
-      canvas.setColor(color);
-      updateSizePreview();
-      sound.playPop();
-    });
-  });
+// Buy Item
+function buyUpgrade(item) {
+  const cost = getUpgradeCost(item);
+  if (GAME.coins >= cost) {
+    GAME.coins -= cost;
+    item.count++;
+    renderShop();
+    updateUI();
+  }
+}
 
-  // Brush Size
-  function updateSizePreview() {
-    if (!strokeSizeSlider || !strokeSizePreview) return;
-    const size = parseInt(strokeSizeSlider.value, 10);
-    strokeSizePreview.style.width = `${Math.min(24, Math.max(4, size * 1.3))}px`;
-    strokeSizePreview.style.height = `${Math.min(24, Math.max(4, size * 1.3))}px`;
-    strokeSizePreview.style.backgroundColor = canvas.options.color;
-    canvas.setStrokeWidth(size);
+// Switch Carter Image randomly
+function switchCarterImage() {
+  let next;
+  do {
+    next = Math.floor(Math.random() * CARTER_IMAGES.length);
+  } while (next === GAME.currentImgIndex && CARTER_IMAGES.length > 1);
+
+  GAME.currentImgIndex = next;
+  const current = CARTER_IMAGES[next];
+  carterImgEl.src = current.src;
+  carterVibeTag.textContent = current.name;
+}
+
+// Click Carter
+carterBox.addEventListener("pointerdown", (e) => {
+  e.preventDefault();
+
+  // 1. Random Image Swap
+  switchCarterImage();
+
+  // 2. Add Coins
+  const clickPower = 1 + Math.floor(getTotalCPS() * 0.05);
+  GAME.coins += clickPower;
+  GAME.totalEarned += clickPower;
+
+  // 3. Squash Animation
+  carterBox.classList.remove("clicked", "clicked-alt");
+  void carterBox.offsetWidth;
+  if (Math.random() > 0.5) {
+    carterBox.classList.add("clicked");
+  } else {
+    carterBox.classList.add("clicked-alt");
   }
 
-  if (strokeSizeSlider) {
-    strokeSizeSlider.addEventListener('input', updateSizePreview);
-    updateSizePreview();
+  // 4. Ripple
+  const rect = carterBox.getBoundingClientRect();
+  const x = e.clientX ? (e.clientX - rect.left) : (rect.width / 2);
+  const y = e.clientY ? (e.clientY - rect.top) : (rect.height / 2);
+
+  clickRipple.style.left = `${x}px`;
+  clickRipple.style.top = `${y}px`;
+  clickRipple.classList.remove("play");
+  void clickRipple.offsetWidth;
+  clickRipple.classList.add("play");
+
+  // 5. Floating Number
+  spawnFloatNum(x, y, clickPower);
+
+  // 6. Occasional Joke Popup (1 in 4 clicks)
+  if (Math.random() < 0.25) {
+    spawnFloatJoke(x, y);
   }
 
-  // Undo & Clear
-  if (undoBtn) {
-    undoBtn.addEventListener('click', () => {
-      canvas.undo();
-      sound.playPop();
-    });
+  // 7. Update Roast Quote (1 in 8 clicks)
+  if (Math.random() < 0.12) {
+    const q = CARTER_QUOTES[Math.floor(Math.random() * CARTER_QUOTES.length)];
+    carterQuoteEl.textContent = `"${q}"`;
   }
 
-  if (clearBtn) {
-    clearBtn.addEventListener('click', () => {
-      canvas.clear();
-      sound.playClearSwoosh();
-      renderEmpty();
-    });
-  }
+  updateUI();
+});
 
-  // Keyboard Shortcuts (Ctrl+Z, Esc, E, P)
-  window.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
-      e.preventDefault();
-      canvas.undo();
-    } else if (e.key === 'Escape') {
-      canvas.clear();
-      renderEmpty();
-    } else if (e.key.toLowerCase() === 'e') {
-      const eraserBtn = document.querySelector('[data-tool="eraser"]');
-      if (eraserBtn) eraserBtn.click();
-    } else if (e.key.toLowerCase() === 'p') {
-      const penBtn = document.querySelector('[data-tool="pen"]');
-      if (penBtn) penBtn.click();
-    }
-  });
+function spawnFloatNum(x, y, amount) {
+  const el = document.createElement("div");
+  el.className = "float-num";
+  el.textContent = `+${formatNumber(amount)}`;
+  el.style.left = `${x + (Math.random() - 0.5) * 30}px`;
+  el.style.top = `${y + (Math.random() - 0.5) * 20}px`;
+  clickEffects.appendChild(el);
+  setTimeout(() => el.remove(), 800);
+}
 
-  // Real-time debounced prediction
-  function triggerPrediction(strokes) {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-      runPrediction(strokes || canvas.getAllStrokes());
-    }, 110);
-  }
+function spawnFloatJoke(x, y) {
+  const el = document.createElement("div");
+  el.className = "float-joke";
+  el.textContent = CLICK_JOKES[Math.floor(Math.random() * CLICK_JOKES.length)];
+  el.style.setProperty("--dx", `${(Math.random() - 0.5) * 60}px`);
+  el.style.left = `${x}px`;
+  el.style.top = `${y}px`;
+  clickEffects.appendChild(el);
+  setTimeout(() => el.remove(), 1000);
+}
 
-  async function runPrediction(strokes) {
-    const activeStrokes = strokes || canvas.getAllStrokes();
-    if (!activeStrokes || activeStrokes.length === 0) {
-      renderEmpty();
-      return;
-    }
+// Update UI
+function updateUI() {
+  coinCountEl.textContent = formatNumber(GAME.coins);
+  cpsDisplayEl.textContent = formatNumber(getTotalCPS());
 
-    // 1. Instant local prediction (0ms latency fallback)
-    const localResults = recognizer.predict(activeStrokes, 1);
-    if (localResults && localResults.length > 0) {
-      renderTopResult(localResults[0]);
-    }
-
-    // 2. Google AutoDraw ML model (trained on 50M sketches, 300+ emojis)
-    if (autoDraw) {
-      try {
-        const mlResult = await autoDraw.predict(activeStrokes, canvas.displayWidth || 600, canvas.displayHeight || 500);
-        if (mlResult) {
-          renderTopResult(mlResult);
-        }
-      } catch (e) {
-        // Fallback remains active
-      }
-    }
-  }
-
-  function renderEmpty() {
-    emptyStateEl.classList.remove('hidden');
-    topResultEl.classList.add('hidden');
-    currentTopEmoji = null;
-  }
-
-  function renderTopResult(top) {
-    emptyStateEl.classList.add('hidden');
-    topResultEl.classList.remove('hidden');
-
-    currentTopEmoji = top;
-
-    // Trigger subtle pop animation if emoji changed
-    if (heroEmojiEl.textContent !== top.emoji) {
-      heroEmojiEl.classList.remove('pop-anim');
-      void heroEmojiEl.offsetWidth; // trigger reflow
-      heroEmojiEl.classList.add('pop-anim');
-    }
-
-    heroEmojiEl.textContent = top.emoji;
-    heroNameEl.textContent = top.name;
-    heroConfidenceEl.textContent = `${top.confidence}% match`;
-
-    heroCopyBtn.onclick = () => copyEmoji(top.emoji, top.name);
-    heroEmojiEl.onclick = () => copyEmoji(top.emoji, top.name);
-  }
-
-  // Copy Emoji with Toast & Sound
-  async function copyEmoji(emoji, name) {
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(emoji);
+  // Update shop card afford states without re-rendering everything
+  for (const card of shopListEl.children) {
+    const id = card.dataset.id;
+    const item = UPGRADES.find(u => u.id === id);
+    if (item) {
+      const cost = getUpgradeCost(item);
+      if (GAME.coins >= cost) {
+        card.classList.remove("disabled");
       } else {
-        const textarea = document.createElement('textarea');
-        textarea.value = emoji;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
+        card.classList.add("disabled");
       }
-
-      sound.playCopyChime();
-      showToast(`Copied ${emoji} (${name})!`);
-    } catch (err) {
-      console.error('Copy failed:', err);
-      showToast(`Selected ${emoji}`);
     }
   }
+}
 
-  // Toast Notification
-  let toastTimeout = null;
-  function showToast(msg) {
-    toastMessageEl.textContent = msg;
+// Game Loop
+let lastTime = performance.now();
+function loop(now) {
+  const delta = (now - lastTime) / 1000;
+  lastTime = now;
 
-    if (toastEl.showPopover) {
-      try {
-        toastEl.showPopover();
-      } catch (e) {
-        toastEl.classList.add('show');
+  const cps = getTotalCPS();
+  if (cps > 0) {
+    const gain = cps * delta;
+    GAME.coins += gain;
+    GAME.totalEarned += gain;
+  }
+
+  updateUI();
+  requestAnimationFrame(loop);
+}
+
+// Save / Load
+function save() {
+  const data = {
+    coins: GAME.coins,
+    totalEarned: GAME.totalEarned,
+    upgrades: UPGRADES.map(u => ({ id: u.id, count: u.count }))
+  };
+  localStorage.setItem("carter_clean_save", JSON.stringify(data));
+}
+
+function load() {
+  const raw = localStorage.getItem("carter_clean_save");
+  if (!raw) return;
+  try {
+    const data = JSON.parse(raw);
+    GAME.coins = data.coins || 0;
+    GAME.totalEarned = data.totalEarned || 0;
+    if (data.upgrades) {
+      for (const saved of data.upgrades) {
+        const u = UPGRADES.find(item => item.id === saved.id);
+        if (u) u.count = saved.count || 0;
       }
-    } else {
-      toastEl.classList.add('show');
     }
+  } catch (e) {
+    console.error(e);
+  }
+}
 
-    clearTimeout(toastTimeout);
-    toastTimeout = setTimeout(() => {
-      if (toastEl.hidePopover) {
-        try {
-          toastEl.hidePopover();
-        } catch (e) {
-          toastEl.classList.remove('show');
-        }
-      } else {
-        toastEl.classList.remove('show');
-      }
-    }, 2200);
+btnReset.addEventListener("click", () => {
+  if (confirm("Reset game?")) {
+    localStorage.removeItem("carter_clean_save");
+    location.reload();
   }
 });
+
+// Periodic Quote Rotation (every 12s)
+setInterval(() => {
+  const q = CARTER_QUOTES[Math.floor(Math.random() * CARTER_QUOTES.length)];
+  carterQuoteEl.textContent = `"${q}"`;
+}, 12000);
+
+// Auto-save every 15s
+setInterval(save, 15000);
+
+// Init
+load();
+renderShop();
+updateUI();
+requestAnimationFrame(loop);
